@@ -1,0 +1,11 @@
+# binários e build
+/bin/
+/data/
+/*.o
+*.db
+*.log
+*.out
+*.pdf
+
+# sistema
+.DS_Store
