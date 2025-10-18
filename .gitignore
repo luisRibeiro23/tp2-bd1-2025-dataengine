@@ -1,11 +1,25 @@
-# binários e build
-/bin/
-/data/
-/*.o
-*.db
-*.log
+# Binários e objetos
+*.o
 *.out
-*.pdf
+*.exe
+*.db
+*.csv
 
-# sistema
+# Diretórios binários
+/bin/
+/build/
+/obj/
+
+# Arquivos temporários do sistema
+*.swp
+*~
 .DS_Store
+
+# Arquivos gerados em tempo de execução
+offsets_primary.csv
+offsets_secondary.csv
+
+# Backups e logs
+*.log
+*.tmp
+
