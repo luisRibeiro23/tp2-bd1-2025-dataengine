@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
+    // ✅ Verifica os argumentos na entrada
     if (argc < 3) {
         std::cerr << "Uso: " << argv[0] << " <csv_input> <datafile_path>\n";
         return 1;
@@ -17,18 +18,18 @@ int main(int argc, char *argv[]) {
     const char *data_path = argv[2];
     const char *hash_path = "data/hash_index.db";
     const char *bptree_path = "data/index_primary.idx";
-
+    // ✅ Inicializa o arquivo de hashing
     init_hash_file(hash_path);
-
+    // ✅ Inicializa a árvore B+ e cria arquivo do índice primário
     BPTree t(bptree_path);
     criarArvore(t);
-
+    // ✅ Abre o arquivo CSV da entrada
     std::ifstream file(csv_path);
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo CSV: " << csv_path << "\n";
         return 1;
     }
-
+    //
     int fd = open(data_path, O_CREAT | O_RDWR | O_TRUNC, 0666);
     if (fd < 0) {
         std::cerr << "Erro ao criar arquivo de dados.\n";
