@@ -4,14 +4,22 @@ CXXFLAGS = -Wall -std=c++17 -Iinclude
 # === COMPILAÇÃO ===
 all: build
 
-build: bin/upload bin/findrec bin/build_secondary bin/seek2
+build: bin/upload bin/findrec bin/seek1 bin/seek2  # ✅ Remover build_secondary
 
 # Regra para compilar arquivos .o
 src/%.o: src/%.cpp include/data_engine.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# ✅ Regra específica para bptree.cpp
+src/bptree.o: src/bptree.cpp include/bptree.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# ✅ Regra específica para btree_sec.cpp
+src/btree_sec.o: src/btree_sec.cpp include/btree_sec.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 # Executáveis
-bin/upload: src/data_engine.o src/upload.o
+bin/upload: src/data_engine.o src/upload.o src/bptree.o src/btree_sec.o  # ✅ Incluir ambas B+Trees
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
@@ -19,11 +27,11 @@ bin/findrec: src/data_engine.o src/findrec.o
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-bin/build_secondary: src/data_engine.o src/build_secondary.o
+bin/seek1: src/data_engine.o src/seek1.o src/bptree.o
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-bin/seek2: src/data_engine.o src/seek2.o
+bin/seek2: src/data_engine.o src/seek2.o src/btree_sec.o
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
@@ -38,14 +46,10 @@ docker-run-upload:
 docker-run-findrec:
 	docker run --rm -v $(PWD)/data:/data tp2 /app/bin/findrec $(if $(ID),$(ID),1) /data/data.db /data/hash_index.db
 
-# ✅ Corrigir: garantir que upload seja executado primeiro
-docker-run-build-secondary:
-	@if [ ! -f data/data.db ]; then echo "📁 Executando upload primeiro..."; make docker-run-upload; fi
-	docker run --rm -v $(PWD)/data:/data tp2 /app/bin/build_secondary /data/data.db /data/titulo_index.btree
+docker-run-seek1:
+	docker run --rm -v $(PWD)/data:/data tp2 /app/bin/seek1 /data/index_primary.idx /data/data.db $(if $(ID),$(ID),1)
 
-# ✅ Corrigir: garantir que B+Tree seja criado primeiro  
 docker-run-seek2:
-	@if [ ! -f data/titulo_index.btree ]; then echo "🔄 Criando B+Tree primeiro..."; make docker-run-build-secondary; fi
 	docker run --rm -v $(PWD)/data:/data tp2 /app/bin/seek2 "Poster: 3D sketching and flexible input for surface design: A case study." /data/data.db /data/titulo_index.btree
 
 # === TESTES ===
@@ -55,15 +59,23 @@ test-hash:
 	make docker-run-findrec ID=1
 	make docker-run-findrec ID=999
 
-test-btree:
-	@echo "🧪 Testando busca por título (B+Tree)..."
+test-btree-primary:
+	@echo "🧪 Testando busca por ID (B+Tree primária)..."
+	@if [ ! -f data/data.db ]; then make docker-run-upload; fi
+	make docker-run-seek1 ID=1
+	make docker-run-seek1 ID=5
+	make docker-run-seek1 ID=999
+
+test-btree-secondary:
+	@echo "🧪 Testando busca por título (B+Tree secundária)..."
+	@if [ ! -f data/data.db ]; then make docker-run-upload; fi
 	make docker-run-seek2
 
-test-all: docker-build test-hash test-btree
+test-all: docker-build test-hash test-btree-primary test-btree-secondary
 	@echo "✅ Todos os testes concluídos!"
 
 # === LIMPEZA ===
 clean:
-	rm -rf bin src/*.o data/*.db data/*.btree
+	rm -rf bin src/*.o data/*.db data/*.btree data/*.idx
 
-.PHONY: all build docker-build docker-run-upload docker-run-findrec docker-run-build-secondary docker-run-seek2 test-hash test-btree test-all clean
+.PHONY: all build docker-build docker-run-upload docker-run-findrec docker-run-seek1 docker-run-seek2 test-hash test-btree-primary test-btree-secondary test-all clean

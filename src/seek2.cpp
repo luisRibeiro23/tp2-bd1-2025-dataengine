@@ -1,7 +1,8 @@
-#include "data_engine.h"
+#include "btree_sec.h"
 #include <fcntl.h>
 #include <iostream>
 #include <string>
+#include <chrono>
 
 int main(int argc, char *argv[]) {
     if (argc < 4) {
@@ -13,19 +14,25 @@ int main(int argc, char *argv[]) {
     const char *data_file = argv[2];
     const char *btree_file = argv[3];
     
-    std::cout << "🔍 Buscando título: \"" << search_titulo << "\"\n";
+    std::cout << "🔍 Buscando título na B+Tree secundária...\n";
+    std::cout << "📖 Título: \"" << search_titulo << "\"\n";
     
-    // ✅ Busca direta por título (sem hash)
+    auto inicio = std::chrono::high_resolution_clock::now();
+    
+    // Buscar na B+Tree
     off_t data_offset = search_btree(btree_file, search_titulo.c_str());
     
+    auto fim = std::chrono::high_resolution_clock::now();
+    auto duracao = std::chrono::duration_cast<std::chrono::microseconds>(fim - inicio);
+    
     if (data_offset == -1) {
-        std::cout << "❌ Título não encontrado na B+Tree\n";
+        std::cout << "❌ Título não encontrado na B+Tree secundária\n";
         return 1;
     }
     
     std::cout << "✅ Título encontrado na B+Tree, offset: " << data_offset << "\n";
     
-    // Lê registro do arquivo de dados
+    // Ler registro do arquivo de dados
     int fd = open(data_file, O_RDONLY);
     if (fd < 0) {
         std::cerr << "❌ Erro ao abrir arquivo de dados\n";
@@ -40,12 +47,17 @@ int main(int argc, char *argv[]) {
     }
     close(fd);
     
-    std::cout << "✅ Registro encontrado!\n";
+    std::cout << "Registro encontrado via índice secundário:\n";
+    std::cout << "-----------------------------------------\n";
     std::cout << "ID: " << r.id << "\n";
     std::cout << "Título: " << r.titulo << "\n";
     std::cout << "Ano: " << r.ano << "\n";
     std::cout << "Autores: " << r.autores << "\n";
     std::cout << "Citações: " << r.citacoes << "\n";
+    std::cout << "Atualização: " << r.atualizacao << "\n";
+    std::cout << "Snippet: " << r.snippet << "\n";
+    std::cout << "-----------------------------------------\n";
+    std::cout << "Tempo de busca: " << duracao.count() / 1000.0 << " ms\n";
     
     return 0;
 }
