@@ -6,6 +6,7 @@
 
 // ---------------- Operações de Bloco ----------------
 
+// Zera o conteúdo de um bloco de memória, preenchendo o bloco com zeros
 static void zerarBloco(std::vector<char>& buffer) {
     std::fill(buffer.begin(), buffer.end(), 0);
 }
@@ -20,7 +21,7 @@ static void escreverBloco(std::fstream& arq, const BPTreeNode& no, ptr_t posicao
     arq.flush();
 }
 
-// Lê um nó da árvore a partir de uma posição específica do arquivo
+// Lê um nó da árvore a partir de uma posição específica do arquivo e copia para a estrutura BPTreeNode em memória
 static void lerBloco(std::fstream& arq, BPTreeNode& no, ptr_t posicao) {
     std::vector<char> buffer(BLOCK_SIZE);
     arq.seekg(posicao, std::ios::beg);
@@ -28,6 +29,7 @@ static void lerBloco(std::fstream& arq, BPTreeNode& no, ptr_t posicao) {
     std::memcpy(&no, buffer.data(), sizeof(BPTreeNode));
 }
 
+// Calcula o tamanho total (em bytes) do arquivo associado à árvore, retornando a posição final do ponteiro de leitura
 static ptr_t tamanhoArquivo(std::fstream& arq) {
     auto atual = arq.tellg();
     arq.seekg(0, std::ios::end);
@@ -36,12 +38,14 @@ static ptr_t tamanhoArquivo(std::fstream& arq) {
     return static_cast<ptr_t>(fim);
 }
 
+// Faz uma divisão inteira com arredondamento para cima, é usada para calcular o número total de blocos no arquivo
 static int divArredondada(ptr_t a, int b) {
     return static_cast<int>((a + b - 1) / b);
 }
 
 // ---------------- Cabeçalho ----------------
 
+// Escreve no início do arquivo, no bloco 0, a posição do nó raiz da árvore, atualizando o cabeçalho da estrutura no disco
 static void escreverCabecalho(BPTree& t) {
     std::vector<char> buffer(BLOCK_SIZE);
     zerarBloco(buffer);
@@ -51,6 +55,7 @@ static void escreverCabecalho(BPTree& t) {
     t.arquivo.flush();
 }
 
+// Lê o cabeçalho do arquivo e atualiza o campo rootOffset da estrutura BPTree, indicando onde está a raiz
 static void lerCabecalho(BPTree& t) {
     std::vector<char> buffer(BLOCK_SIZE);
     t.arquivo.seekg(0, std::ios::beg);
@@ -60,7 +65,7 @@ static void lerCabecalho(BPTree& t) {
 
 // ---------------- Alocação ----------------
 
-// Aloca um novo nó no final do arquivo
+// Cria e grava um novo nó folha vazio no final do arquivo, inicializando seus campos com valores padrão e retornando sua posição
 static ptr_t alocarNo(BPTree& t) {
     t.arquivo.seekp(0, std::ios::end);
     ptr_t posicao = static_cast<ptr_t>(t.arquivo.tellp());
@@ -79,7 +84,8 @@ static ptr_t alocarNo(BPTree& t) {
 
 // ---------------- Criar e fechar árvore ----------------
 
-// Abre um arquivo existente da árvore ou cria um novo se não existir
+/* Abre um arquivo de índice existente ou cria um novo, inicializando a raiz da árvore
+   Também grava o cabeçalho e define o número total de blocos */
 void criarArvore(BPTree& t) {
     t.arquivo.open(t.nomeArquivo, std::ios::in | std::ios::out | std::ios::binary);
     // Caso o arquivo não exista, cria e inicializa um novo
@@ -117,7 +123,7 @@ void criarArvore(BPTree& t) {
     t.blocosLidos = 0;
 }
 
-// Fecha o arquivo da árvore
+// Fecha o arquivo associado à árvore, caso esteja aberto
 void fecharArq(BPTree& t) {
     if (t.arquivo.is_open()) 
         t.arquivo.close();
@@ -125,19 +131,21 @@ void fecharArq(BPTree& t) {
 
 // ---------------- Busca ----------------
 
-// Retorna o índice onde a chave deve ser inserida
+// Realiza uma busca binária para encontrar a posição onde uma nova chave deve ser inserida dentro de um nó ordenado
 static int limiteSuperior(const key_t* chaves, int n, key_t chave) {
-    int baixo = 0;
-    int alto = n;
-    while (baixo < alto) {
-        int meio = (baixo + alto) >> 1;
-        if (chaves[meio] <= chave) baixo = meio + 1;
-        else alto = meio;
+    int inicio = 0;
+    int fim = n;
+    while (inicio < fim) {
+        int meio = (inicio + fim) >> 1;
+        if (chaves[meio] <= chave) 
+            inicio = meio + 1;
+        else fim = meio;
     }
-    return baixo;
+    return inicio;
 }
 
-// Busca uma chave na árvore e retorna o ponteiro para o valor, se existir
+/* Percorre a árvore desde a raiz até encontrar a folha correspondente
+   Se a chave for encontrada, retorna o ponteiro para o valor associado. Se não, retorna -1 */
 ptr_t buscarChave(BPTree& t, key_t chave) {
     t.blocosLidos = 0;
     BPTreeNode no{};
@@ -162,7 +170,9 @@ ptr_t buscarChave(BPTree& t, key_t chave) {
 
 // ---------------- Inserção ----------------
 
-// Insere uma nova chave em um nó folha
+/* Insere uma chave e seu valor em um nó folha
+   Se houver espaço, apenas insere e grava o nó
+   Se não, realiza o split e atualiza a chave separadora e a posição do nó direito */
 static bool inserirNaFolha(BPTree& t, ptr_t posFolha, key_t chave, ptr_t valor, key_t& chaveSeparadora, ptr_t& posDireita) {
     BPTreeNode folha{};
     lerBloco(t.arquivo, folha, posFolha);
@@ -234,7 +244,8 @@ static bool inserirNaFolha(BPTree& t, ptr_t posFolha, key_t chave, ptr_t valor, 
     return true;
 }
 
-// Inserção recursiva em nós internos
+/* Função recursiva que insere uma chave na árvore B+
+   Retorna true se houve split, atualizando a chave separadora e a posição do nó direito */
 static bool inserirRecursivo(BPTree& t, ptr_t posicaoAtual, key_t chave, ptr_t valor, key_t& chaveSeparadora, ptr_t& posDireita) {
     BPTreeNode no{};
     lerBloco(t.arquivo, no, posicaoAtual);
@@ -299,7 +310,9 @@ static bool inserirRecursivo(BPTree& t, ptr_t posicaoAtual, key_t chave, ptr_t v
     return true;
 }
 
-// Função principal de inserção de uma chave na árvore
+/* Função principal de inserção
+   Chama a função inserirRecursivo e, se a raiz for dividida, cria uma nova raiz e atualiza o cabeçalho
+   Por fim, recalcula o número de blocos no arquivo */
 void inserirChave(BPTree& t, key_t chave, ptr_t posDado) {
     key_t chaveSeparadora = 0;
     ptr_t direita = -1;
