@@ -4,6 +4,14 @@
 #include <iostream>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <cstdlib>   // system()
+
+// ✅ Função para verificar existência do arquivo
+bool file_exists(const char* filename) {
+    struct stat buffer;
+    return (stat(filename, &buffer) == 0);
+}
 
 int main(int argc, char *argv[]) {
     // ✅ Verifica parâmetros obrigatórios: CSV de entrada e arquivo de dados.
@@ -17,6 +25,35 @@ int main(int argc, char *argv[]) {
     const char *data_path   = argv[2];
     const char *hash_path   = "data/hash_index.db";     // índice hash
     const char *bptree_path = "data/index_primary.idx"; // B+ tree (chave primária)
+
+    // ✅ Se o CSV não existir, baixa automaticamente do Drive
+    if (!file_exists(csv_path)) {
+        std::cout << "📥 Arquivo CSV não encontrado localmente.\n";
+        std::cout << "🔽 Baixando automaticamente do Google Drive...\n";
+
+        const char* gz_path = "data/artigo.csv.gz";
+
+        // ✅ Baixar a versão compactada corretamente (tratando link grande do Drive)
+        std::string cmd_wget =
+            "wget --no-check-certificate --content-disposition "
+            "--trust-server-name -O data/artigo.csv.gz "
+            "\"https://drive.usercontent.google.com/download?id=1EVoP0d9Wwzj1O6eoFIkel9I3cpe43Gbv&export=download\"";
+
+        if (system(cmd_wget.c_str()) != 0 || !file_exists(gz_path)) {
+            std::cerr << "❌ Erro ao baixar o arquivo compactado do Drive.\n";
+            return 1;
+        }
+
+        std::cout << "📦 Download concluído! Descompactando (aguarde)...\n";
+
+        // ✅ Descompactar
+        if (system("gunzip -f data/artigo.csv.gz") != 0 || !file_exists(csv_path)) {
+            std::cerr << "❌ Erro ao descompactar o CSV.\n";
+            return 1;
+        }
+
+        std::cout << "✅ CSV pronto para uso!\n";
+    }
 
     // ✅ Lê todos os registros do CSV (parser trata quebras e inconsistências).
     std::vector<Record> records = parse_csv(csv_path);
