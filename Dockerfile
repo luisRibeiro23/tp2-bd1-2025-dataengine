@@ -1,28 +1,27 @@
+# === Base ===
 FROM ubuntu:22.04
 
+# === Dependências ===
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      g++ make cmake && \
+    g++ make cmake && \
     rm -rf /var/lib/apt/lists/*
 
+# === Diretório de trabalho ===
 WORKDIR /app
 
-# Copiar apenas os arquivos necessários
+# === Copiar código-fonte e cabeçalhos ===
 COPY src/ ./src/
 COPY include/ ./include/
 COPY Makefile ./
 
-# Compilar DENTRO do container
+# === Compilar dentro do container ===
 RUN make build
 
-# Criar diretório data dentro do container (para o path hardcoded)
+# === Criar diretório de dados ===
 RUN mkdir -p /app/data
 
-# Diretório para dados persistentes
+# === Volume de dados persistente ===
 VOLUME ["/data"]
 
-# Variáveis de ambiente
-ENV CSV_PATH=/data/input.csv \
-    DATA_DIR=/data/db \
-    LOG_LEVEL=info
-
-CMD ["bash", "-lc", "echo 'Use: docker run ... upload|findrec'; ls -l bin/"]
+# === Instrução ao usuário ===
+CMD ["bash", "-lc", "echo '✅ Imagem pronta! Monte o diretório data e execute: /app/bin/upload /data/artigo.csv /data/data.db'"]
