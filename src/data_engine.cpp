@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <iostream>
 
+//Cria um arquivo contendo o número de NUM_BUCKETS buckets vazios para receber os offsets
 void init_hash_file(const char *filename) {
     int fd = open(filename, O_CREAT | O_RDWR | O_TRUNC, 0666);
     if (fd < 0) {
@@ -54,7 +55,8 @@ Record deserialize_record(const uint8_t *buf, size_t len) {
     return r;
 }
 
-
+// ------------------ Grava um registro no final do arquivo ------------------
+// Retorna o offset onde o registro foi armazenado.
 off_t write_record(int fd, const Record &r) {
     off_t offset = lseek(fd, 0, SEEK_END);
     write(fd, &r, sizeof(Record));
@@ -63,14 +65,15 @@ off_t write_record(int fd, const Record &r) {
 
 
 
-
+//Lê um registro a partir de offset
 Record read_record_by_offset(int fd, off_t offset) {
     Record r;
     lseek(fd, offset, SEEK_SET);
     read(fd, &r, sizeof(Record));
     return r;
 }
-
+// ------------------ Insere offset no bucket correspondente ------------------
+// Caso o bucket esteja cheio, aloca um bucket de overflow e encadeia.
 void insert_offset_into_bucket(const char *hash_file, uint32_t bucket_id, off_t record_offset) {
     int fd = open(hash_file, O_RDWR);
     if (fd < 0) {
@@ -78,37 +81,60 @@ void insert_offset_into_bucket(const char *hash_file, uint32_t bucket_id, off_t 
         return;
     }
 
-    off_t pos = bucket_id * sizeof(Bucket);
+    off_t pos = static_cast<off_t>(bucket_id) * static_cast<off_t>(sizeof(Bucket));
     Bucket b;
-    pread(fd, &b, sizeof(Bucket), pos);
-
-    // há espaço neste bucket?
-    if (b.count < BUCKET_SIZE) {
-        b.offsets[b.count++] = record_offset;
-        pwrite(fd, &b, sizeof(Bucket), pos);
+    if (pread(fd, &b, sizeof(Bucket), pos) != (ssize_t)sizeof(Bucket)) {
+        perror("Erro ao ler bucket");
         close(fd);
         return;
     }
 
-    // bucket cheio → overflow
-    Bucket new_b;
-    new_b.count = 1;
-    new_b.offsets[0] = record_offset;
-    for (int i = 1; i < BUCKET_SIZE; i++)
-        new_b.offsets[i] = INVALID_OFFSET;
-    new_b.next_overflow = INVALID_OFFSET;
+    while (true) {
+        // 1) Verifica se tem espaço no bucket e insere se tiver
+        if (b.count < BUCKET_SIZE) {
+            b.offsets[b.count++] = record_offset;
+            if (pwrite(fd, &b, sizeof(Bucket), pos) != (ssize_t)sizeof(Bucket)) {
+                perror("Erro ao gravar bucket");
+            }
+            close(fd);
+            return;
+        }
 
-    off_t end = lseek(fd, 0, SEEK_END);
-    pwrite(fd, &new_b, sizeof(Bucket), end);
+        // 2) Sem espaço e overflow cria um novo bucket e encadeia
+        if (b.next_overflow == INVALID_OFFSET) {
+            Bucket new_b;
+            new_b.count = 1;
+            new_b.offsets[0] = record_offset;
+            for (int i = 1; i < BUCKET_SIZE; i++) new_b.offsets[i] = INVALID_OFFSET;
+            new_b.next_overflow = INVALID_OFFSET;
 
-    // encadeia o novo bucket
-    b.next_overflow = end;
-    pwrite(fd, &b, sizeof(Bucket), pos);
+            off_t end = lseek(fd, 0, SEEK_END);
+            if (pwrite(fd, &new_b, sizeof(Bucket), end) != (ssize_t)sizeof(Bucket)) {
+                perror("Erro ao gravar novo bucket de overflow");
+                close(fd);
+                return;
+            }
 
-    close(fd);
+            b.next_overflow = end;
+            if (pwrite(fd, &b, sizeof(Bucket), pos) != (ssize_t)sizeof(Bucket)) {
+                perror("Erro ao atualizar ponteiro de overflow");
+            }
+            close(fd);
+            return;
+        }
+
+        // 3) Se existir overflow passa pro outro bucket e repete
+        pos = b.next_overflow;
+        if (pread(fd, &b, sizeof(Bucket), pos) != (ssize_t)sizeof(Bucket)) {
+            perror("Erro ao ler bucket de overflow");
+            close(fd);
+            return;
+        }
+    }
 }
 
 
+// Garante que o resultado esteja sempre entre 0 e NUM_BUCKETS-1.
 uint32_t hash_id(int32_t id) {
     int32_t resto = id % NUM_BUCKETS;
     if (resto < 0) {
