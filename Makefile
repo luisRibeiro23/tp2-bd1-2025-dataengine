@@ -4,22 +4,21 @@ CXXFLAGS = -Wall -std=c++17 -Iinclude
 # === COMPILAÇÃO ===
 all: build
 
-build: bin/upload bin/findrec bin/seek1 bin/seek2  # ✅ Remover build_secondary
+build: bin/upload bin/findrec bin/seek1 bin/seek2  # ✅ mantidos
 
-# Regra para compilar arquivos .o
+# Regra para compilar arquivos .o genéricos
 src/%.o: src/%.cpp include/data_engine.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# ✅ Regra específica para bptree.cpp
+# ✅ Regras específicas (mantidas)
 src/bptree.o: src/bptree.cpp include/bptree.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# ✅ Regra específica para btree_sec.cpp
 src/btree_sec.o: src/btree_sec.cpp include/btree_sec.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Executáveis
-bin/upload: src/data_engine.o src/upload.o src/bptree.o src/btree_sec.o  # ✅ Incluir ambas B+Trees
+# ✅ ADIÇÃO AQUI: incluiu src/parser_csv.o
+bin/upload: src/data_engine.o src/upload.o src/bptree.o src/btree_sec.o src/parser_csv.o
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
