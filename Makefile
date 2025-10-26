@@ -4,20 +4,21 @@ CXXFLAGS = -Wall -std=c++17 -Iinclude
 # === COMPILAÇÃO ===
 all: build
 
-build: bin/upload bin/findrec bin/seek1 bin/seek2  # ✅ mantidos
+# ✅ Ajustado: removemos build_secondary
+build: bin/upload bin/findrec bin/seek1 bin/seek2
 
-# Regra para compilar arquivos .o genéricos
+# Regra para compilar arquivos genéricos
 src/%.o: src/%.cpp include/data_engine.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# ✅ Regras específicas (mantidas)
+# ✅ Regras específicas quando há headers diferenciados
 src/bptree.o: src/bptree.cpp include/bptree.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 src/btree_sec.o: src/btree_sec.cpp include/btree_sec.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# ✅ ADIÇÃO AQUI: incluiu src/parser_csv.o
+# === EXECUTÁVEIS ===
 bin/upload: src/data_engine.o src/upload.o src/bptree.o src/btree_sec.o src/parser_csv.o
 	@mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^
@@ -38,9 +39,8 @@ bin/seek2: src/data_engine.o src/seek2.o src/btree_sec.o
 docker-build:
 	docker build -t tp2 .
 
-# === OPERAÇÕES PRINCIPAIS ===
 docker-run-upload:
-	docker run --rm -v $(PWD)/data:/data -v $(PWD)/data:/app/data tp2 /app/bin/upload /data/artigos.csv /data/data.db
+	docker run --rm -v $(PWD)/data:/data tp2 /app/bin/upload /data/artigo.csv /data/data.db
 
 docker-run-findrec:
 	docker run --rm -v $(PWD)/data:/data tp2 /app/bin/findrec $(if $(ID),$(ID),1) /data/data.db /data/hash_index.db
@@ -59,14 +59,14 @@ test-hash:
 	make docker-run-findrec ID=999
 
 test-btree-primary:
-	@echo "🧪 Testando busca por ID (B+Tree primária)..."
+	@echo "🧪 Testando B+Tree primária (ID)..."
 	@if [ ! -f data/data.db ]; then make docker-run-upload; fi
 	make docker-run-seek1 ID=1
 	make docker-run-seek1 ID=5
 	make docker-run-seek1 ID=999
 
 test-btree-secondary:
-	@echo "🧪 Testando busca por título (B+Tree secundária)..."
+	@echo "🧪 Testando B+Tree secundária (título)..."
 	@if [ ! -f data/data.db ]; then make docker-run-upload; fi
 	make docker-run-seek2
 
