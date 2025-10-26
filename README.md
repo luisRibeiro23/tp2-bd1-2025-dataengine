@@ -8,13 +8,15 @@ Sistema de gerenciamento de registros acadêmicos com múltiplas estratégias de
 tp2/
 ├── src/                    # Código fonte
 │   ├── upload.cpp         # Carregamento de dados e criação de índices
+│   ├── parser_csv.cpp     # Parser robusto para o arquivo CSV
 │   ├── findrec.cpp        # Busca por ID usando Hash Index
 │   ├── seek1.cpp          # Busca por ID usando B+Tree Primária
 │   └── seek2.cpp          # Busca por título usando B+Tree Secundária
 ├── include/               # Headers
 │   ├── data_engine.h      # Estruturas de dados e funções hash
-│   ├── bptree.h          # B+Tree para índice primário
-│   └── btree_sec.h       # B+Tree para índice secundário
+│   ├── parser_csv.h       # Interface do parser de CSV
+│   ├── bptree.h           # B+Tree para índice primário
+│   └── btree_sec.h        # B+Tree para índice secundário
 ├── data/                  # Arquivos de dados e índices
 ├── Makefile              # Build e automação
 ├── Dockerfile            # Container Docker
