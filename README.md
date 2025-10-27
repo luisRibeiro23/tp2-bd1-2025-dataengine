@@ -26,7 +26,7 @@ make docker-build
 make clean && make docker-build
 ```
 
-## 📊 Comandos de Execução
+## Comandos de Execução
 
 ### 1. Upload - Carregamento de Dados e Criação de Índices
 
@@ -66,8 +66,6 @@ make docker-run-seek1 ID=1
 ./bin/seek1 data/index_primary.idx data/data.db 1
 ```
 
-**Performance**: O(log n) - busca ordenada e confiável
-
 ### 4. Seek2 - Busca por Título usando B+Tree Secundária
 
 ```bash
@@ -77,8 +75,6 @@ make docker-run-seek2
 # Local
 ./bin/seek2 "Poster: 3D sketching and flexible input for surface design: A case study." data/data.db data/titulo_index.btree
 ```
-
-**Performance**: O(log n) - busca por string completa
 
 ## Layout dos Arquivos em /data/
 
@@ -98,7 +94,7 @@ data/
 - **`index_primary.idx`**: B+Tree com MAX_KEYS=128, blocos de 4KB
 - **`titulo_index.btree`**: B+Tree especializada para strings, blocos de 4KB
 
-## 📈 Exemplo de Entrada/Saída
+## Exemplo de Entrada/Saída
 
 ### Entrada (artigos.csv - amostra):
 ```csv
@@ -178,7 +174,7 @@ Snippet: "Poster: 3D sketching and flexible input for surface design..."
 Tempo de busca: 0.029 ms
 ```
 
-## 🧪 Testes Automatizados
+## Testes Automatizados
 
 ```bash
 # Testar todos os métodos de indexação
