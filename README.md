@@ -48,10 +48,10 @@ make docker-run-upload
 
 ```bash
 # Via Docker
-make docker-run-findrec ID=1
+make docker-run-findrec ID=20
 
 # Local
-./bin/findrec 1 data/data.db data/hash_index.db
+./bin/findrec 20 data/data.db data/hash_index.db
 ```
 
 **Performance**: O(1) - busca mais rápida quando a chave é encontrada
@@ -60,10 +60,10 @@ make docker-run-findrec ID=1
 
 ```bash
 # Via Docker
-make docker-run-seek1 ID=1
+make docker-run-seek1 ID=20
 
 # Local  
-./bin/seek1 data/index_primary.idx data/data.db 1
+./bin/seek1 data/index_primary.idx data/data.db 20
 ```
 
 ### 4. Seek2 - Busca por Título usando B+Tree Secundária
