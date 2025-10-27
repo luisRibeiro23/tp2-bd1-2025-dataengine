@@ -7,10 +7,12 @@
 
 // ---------------- Operações de Bloco ----------------
 
+// Zera o conteúdo de um bloco de memória, preenchendo o bloco com zeros
 static void zerarBloco(std::vector<char>& buffer) {
     std::fill(buffer.begin(), buffer.end(), 0);
 }
 
+// Escreve um nó da árvore em uma posição específica do arquivo
 static void escreverBloco(std::fstream& arq, const BTreeNode& no, off_t posicao) {
     std::vector<char> buffer(4096);
     zerarBloco(buffer);
@@ -20,6 +22,7 @@ static void escreverBloco(std::fstream& arq, const BTreeNode& no, off_t posicao)
     arq.flush();
 }
 
+// Lê um nó da árvore a partir de uma posição específica do arquivo e copia para a estrutura BTreeNode em memória
 static void lerBloco(std::fstream& arq, BTreeNode& no, off_t posicao) {
     std::vector<char> buffer(4096);
     arq.seekg(posicao, std::ios::beg);
@@ -27,6 +30,7 @@ static void lerBloco(std::fstream& arq, BTreeNode& no, off_t posicao) {
     std::memcpy(&no, buffer.data(), sizeof(BTreeNode));
 }
 
+// Calcula o tamanho total (em bytes) do arquivo associado à árvore, retornando a posição final do ponteiro de leitura
 static off_t tamanhoArquivo(std::fstream& arq) {
     auto atual = arq.tellg();
     arq.seekg(0, std::ios::end);
@@ -37,6 +41,7 @@ static off_t tamanhoArquivo(std::fstream& arq) {
 
 // ---------------- Cabeçalho ----------------
 
+// Escreve no início do arquivo, no bloco 0, o cabeçalho da árvore, atualizando as informações principais no disco
 static void escreverCabecalho(std::fstream& arq, const BTreeHeader& header) {
     std::vector<char> buffer(4096);
     zerarBloco(buffer);
@@ -46,6 +51,7 @@ static void escreverCabecalho(std::fstream& arq, const BTreeHeader& header) {
     arq.flush();
 }
 
+// Lê o cabeçalho do arquivo e atualiza a estrutura BTreeHeader em memória
 static void lerCabecalho(std::fstream& arq, BTreeHeader& header) {
     std::vector<char> buffer(4096);
     arq.seekg(0, std::ios::beg);
@@ -55,6 +61,7 @@ static void lerCabecalho(std::fstream& arq, BTreeHeader& header) {
 
 // ---------------- Classe B+Tree Secundária ----------------
 
+/* Classe que representa a árvore B+ secundária, responsável por operações de criação, inserção, busca e fechamento */
 class BTreeSecondary {
 private:
     std::fstream arquivo;
@@ -65,13 +72,15 @@ private:
 public:
     BTreeSecondary(const std::string& nome) : nomeArquivo(nome), blocosLidos(0) {}
 
+    // Cria ou abre o arquivo da árvore, inicializando o cabeçalho e o nó raiz se necessário
     bool criarArvore() {
         arquivo.open(nomeArquivo, std::ios::in | std::ios::out | std::ios::binary);
         
+        // Caso o arquivo não exista, cria e inicializa um novo
         if (!arquivo.is_open()) {
             arquivo.open(nomeArquivo, std::ios::out | std::ios::binary | std::ios::trunc);
             if (!arquivo.is_open()) {
-                std::cerr << "❌ Erro ao criar B+Tree secundária: " << nomeArquivo << "\n";
+                std::cerr << "Erro ao criar B+Tree secundária: " << nomeArquivo << "\n";
                 return false;
             }
 
@@ -96,17 +105,19 @@ public:
         if (!arquivo.is_open()) return false;
 
         lerCabecalho(arquivo, header);
-        std::cout << "✅ B+Tree secundária criada/carregada: " << nomeArquivo << "\n";
+        std::cout << "B+Tree secundária criada/carregada: " << nomeArquivo << "\n";
         return true;
     }
 
+    // Fecha o arquivo associado à árvore, caso esteja aberto
     void fecharArvore() {
         if (arquivo.is_open()) {
             arquivo.close();
-            std::cout << "✅ B+Tree secundária fechada. Blocos lidos: " << blocosLidos << "\n";
+            std::cout << "B+Tree secundária fechada. Blocos lidos: " << blocosLidos << "\n";
         }
     }
 
+    // Busca a posição onde uma chave deve ser inserida em um nó ordenado
     int findKeyPosition(const BTreeNode& node, const char* key) {
         int pos = 0;
         while (pos < node.num_keys && strcmp(node.keys[pos], key) < 0) {
@@ -115,13 +126,15 @@ public:
         return pos;
     }
 
+    /* Insere uma chave e seu offset de dado no nó raiz
+       Se houver espaço, insere diretamente. Se não, ignora a inserção (implementação simplificada) */
     bool inserirChave(const char* key, off_t data_offset) {
         if (!arquivo.is_open()) return false;
 
         BTreeNode raiz{};
         lerBloco(arquivo, raiz, header.root_offset);
 
-        // Verifica se chave já existe
+        // Atualiza o valor se a chave já existir
         for (int i = 0; i < raiz.num_keys; i++) {
             if (strcmp(raiz.keys[i], key) == 0) {
                 raiz.data_offsets[i] = data_offset;
@@ -130,7 +143,7 @@ public:
             }
         }
 
-        // Se há espaço, insere diretamente
+        // Verifica se ainda cabe no nó
         if (raiz.num_keys < BTREE_MAX_KEYS) {
             int pos = findKeyPosition(raiz, key);
             
@@ -146,15 +159,17 @@ public:
             escreverBloco(arquivo, raiz, header.root_offset);
             return true;
         } else {
-            // Nó cheio - implementação simplificada ignora
+            // Nó cheio - implementação simplificada ignora a inserção
             static int overflow_count = 0;
             if (++overflow_count <= 5) {
-                std::cout << "⚠️ Nó raiz cheio (" << raiz.num_keys << " chaves) - ignorando inserção\n";
+                std::cout << "Nó raiz cheio (" << raiz.num_keys << " chaves) - ignorando inserção\n";
             }
             return false;
         }
     }
 
+    /* Busca uma chave no nó raiz e retorna o offset do dado associado
+       Se não encontrar, retorna -1 */
     off_t buscarChave(const char* key) {
         if (!arquivo.is_open()) return -1;
 
@@ -171,6 +186,7 @@ public:
         return -1;
     }
 
+    // Retorna o número de blocos lidos durante a última operação
     int getBlocosLidos() const { return blocosLidos; }
 };
 
@@ -178,6 +194,7 @@ public:
 
 static BTreeSecondary* btreeInstance = nullptr;
 
+// Inicializa o arquivo da árvore B+ secundária, criando ou abrindo conforme necessário
 void init_btree_file(const char *filename) {
     if (btreeInstance) {
         btreeInstance->fecharArvore();
@@ -187,11 +204,13 @@ void init_btree_file(const char *filename) {
     btreeInstance->criarArvore();
 }
 
+// Insere uma chave e offset de dado na árvore B+ secundária
 bool insert_into_btree(int btree_fd, const char* key, off_t data_offset) {
     if (!btreeInstance) return false;
     return btreeInstance->inserirChave(key, data_offset);
 }
 
+// Busca uma chave na árvore B+ secundária e retorna o offset do dado associado
 off_t search_btree(const char *btree_filename, const char* key) {
     if (!btreeInstance) {
         btreeInstance = new BTreeSecondary(btree_filename);
@@ -200,7 +219,7 @@ off_t search_btree(const char *btree_filename, const char* key) {
     return btreeInstance->buscarChave(key);
 }
 
-// ✅ IMPLEMENTAR close_btree()
+// Fecha e desaloca a árvore B+ secundária global
 void close_btree() {
     if (btreeInstance) {
         btreeInstance->fecharArvore();
