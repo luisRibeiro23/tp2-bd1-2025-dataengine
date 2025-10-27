@@ -1,29 +1,10 @@
 # TP2 - Sistema de Indexação de Banco de Dados
 
-Sistema de gerenciamento de registros acadêmicos com múltiplas estratégias de indexação: Hash Index, B+Tree Primária e B+Tree Secundária.
+Estefany Licinha Mendes da Silva - estefany.silva@icomp.ufam.edu.br
+Luís Henrique de Carvalho Ribeiro - luis.henrique@icomp.ufam.edu.br
+Samuel Davi Silva de Lima Chagas - samuel.chagas@icomp.ufam.edu.br
 
-## 📋 Estrutura do Projeto
-
-```
-tp2/
-├── src/                    # Código fonte
-│   ├── upload.cpp         # Carregamento de dados e criação de índices
-│   ├── parser_csv.cpp     # Parser robusto para o arquivo CSV
-│   ├── findrec.cpp        # Busca por ID usando Hash Index
-│   ├── seek1.cpp          # Busca por ID usando B+Tree Primária
-│   └── seek2.cpp          # Busca por título usando B+Tree Secundária
-├── include/               # Headers
-│   ├── data_engine.h      # Estruturas de dados e funções hash
-│   ├── parser_csv.h       # Interface do parser de CSV
-│   ├── bptree.h           # B+Tree para índice primário
-│   └── btree_sec.h        # B+Tree para índice secundário
-├── data/                  # Arquivos de dados e índices
-├── Makefile              # Build e automação
-├── Dockerfile            # Container Docker
-└── README.md             # Este arquivo
-```
-
-## 🚀 Build e Execução
+## Build e Execução
 
 ### Build Local
 
@@ -99,7 +80,7 @@ make docker-run-seek2
 
 **Performance**: O(log n) - busca por string completa
 
-## 🗂️ Layout dos Arquivos em /data/
+## Layout dos Arquivos em /data/
 
 ```
 data/
@@ -213,30 +194,3 @@ make test-btree-primary
 make test-btree-secondary
 ```
 
-## 📊 Comparação de Performance
-
-| Método | Complexidade | Tempo Médio | Blocos Lidos | Casos de Uso |
-|--------|-------------|-------------|--------------|--------------|
-| Hash Index | O(1) | ~0ms | 1-2 | Busca rápida por ID conhecido |
-| B+Tree Primária | O(log n) | ~0.01ms | 4 | Busca ordenada por ID |
-| B+Tree Secundária | O(log n) | ~0.03ms | 1-4 | Busca por título completo |
-
-## 🛠️ Requisitos
-
-- **Docker** (recomendado) ou
-- **g++** com suporte a C++17
-- **make**
-
-## 👥 Autores
-
-Samuel Davi Silva de Lima Chagas
-Estefany Licinha Mendes da Silva
-Luís Henrique de Carvalho Ribeiro
-
-Trabalho Prático 2 - Banco de Dados  
-Universidade Federal do Amazonas (UFAM)  
-Período 6
-
----
-
-**Sistema completo de indexação com Hash, B+Tree Primária e B+Tree Secundária funcionando!** ✅🚀
