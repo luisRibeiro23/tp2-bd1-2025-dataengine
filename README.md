@@ -1,8 +1,8 @@
 # TP2 - Sistema de Indexação de Banco de Dados
 
-Estefany Licinha Mendes da Silva - estefany.silva@icomp.ufam.edu.br
-Luís Henrique de Carvalho Ribeiro - luis.henrique@icomp.ufam.edu.br
-Samuel Davi Silva de Lima Chagas - samuel.chagas@icomp.ufam.edu.br
+- Estefany Licinha Mendes da Silva - estefany.silva@icomp.ufam.edu.br
+- Luís Henrique de Carvalho Ribeiro - luis.henrique@icomp.ufam.edu.br
+- Samuel Davi Silva de Lima Chagas - samuel.chagas@icomp.ufam.edu.br
 
 ## Build e Execução
 
