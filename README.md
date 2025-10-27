@@ -31,18 +31,12 @@ make clean && make docker-build
 ### 1. Upload - Carregamento de Dados e Criação de Índices
 
 ```bash
-# Via Docker (recomendado)
+# Via Docker
 make docker-run-upload
 
 # Local
 ./bin/upload data/artigos.csv data/data.db
 ```
-
-**Função**: Processa o arquivo CSV e cria simultaneamente:
-- Arquivo de dados sequencial
-- Hash Index por ID
-- B+Tree Primária por ID  
-- B+Tree Secundária por título
 
 ### 2. FindRec - Busca por ID usando Hash Index
 
@@ -53,8 +47,6 @@ make docker-run-findrec ID=20
 # Local
 ./bin/findrec 20 data/data.db data/hash_index.db
 ```
-
-**Performance**: O(1) - busca mais rápida quando a chave é encontrada
 
 ### 3. Seek1 - Busca por ID usando B+Tree Primária
 
