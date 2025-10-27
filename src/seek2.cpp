@@ -14,8 +14,8 @@ int main(int argc, char *argv[]) {
     const char *data_file = argv[2];
     const char *btree_file = argv[3];
     
-    std::cout << "🔍 Buscando título na B+Tree secundária...\n";
-    std::cout << "📖 Título: \"" << search_titulo << "\"\n";
+    std::cout << "Buscando título na B+Tree secundária...\n";
+    std::cout << "Título: \"" << search_titulo << "\"\n";
     
     auto inicio = std::chrono::high_resolution_clock::now();
     
@@ -26,22 +26,22 @@ int main(int argc, char *argv[]) {
     auto duracao = std::chrono::duration_cast<std::chrono::microseconds>(fim - inicio);
     
     if (data_offset == -1) {
-        std::cout << "❌ Título não encontrado na B+Tree secundária\n";
+        std::cout << "Título não encontrado na B+Tree secundária\n";
         return 1;
     }
     
-    std::cout << "✅ Título encontrado na B+Tree, offset: " << data_offset << "\n";
+    std::cout << "Título encontrado na B+Tree, offset: " << data_offset << "\n";
     
     // Ler registro do arquivo de dados
     int fd = open(data_file, O_RDONLY);
     if (fd < 0) {
-        std::cerr << "❌ Erro ao abrir arquivo de dados\n";
+        std::cerr << "Erro ao abrir arquivo de dados\n";
         return 1;
     }
     
     Record r;
     if (pread(fd, &r, sizeof(Record), data_offset) != sizeof(Record)) {
-        std::cerr << "❌ Erro ao ler registro\n";
+        std::cerr << "Erro ao ler registro\n";
         close(fd);
         return 1;
     }
